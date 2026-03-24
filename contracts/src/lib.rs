@@ -1,6 +1,6 @@
 #![no_std]
 
-use soroban_sdk::{contract, contractimpl, contracttype, Address, Env, String, Vec};
+use soroban_sdk::{contract, contractimpl, contracttype, symbol_short, Address, Env, String};
 
 #[contracttype]
 #[derive(Clone, Debug, PartialEq)]
@@ -68,8 +68,8 @@ impl AgenticPayContract {
 
         let project = Project {
             id: count,
-            client,
-            freelancer,
+            client: client.clone(),
+            freelancer: freelancer.clone(),
             amount,
             deposited: 0,
             status: ProjectStatus::Created,
@@ -82,6 +82,11 @@ impl AgenticPayContract {
             .persistent()
             .set(&DataKey::Project(count), &project);
         env.storage().instance().set(&DataKey::ProjectCount, &count);
+
+        env.events().publish(
+            (symbol_short!("project"), symbol_short!("created")),
+            (count, client, freelancer, amount),
+        );
 
         count
     }
@@ -110,6 +115,11 @@ impl AgenticPayContract {
         env.storage()
             .persistent()
             .set(&DataKey::Project(project_id), &project);
+
+        env.events().publish(
+            (symbol_short!("project"), symbol_short!("funded")),
+            (project_id, amount),
+        );
     }
 
     /// Freelancer submits work with a GitHub repo reference
@@ -131,12 +141,17 @@ impl AgenticPayContract {
             "Project must be funded or in progress"
         );
 
-        project.github_repo = github_repo;
+        project.github_repo = github_repo.clone();
         project.status = ProjectStatus::WorkSubmitted;
 
         env.storage()
             .persistent()
             .set(&DataKey::Project(project_id), &project);
+
+        env.events().publish(
+            (symbol_short!("project"), symbol_short!("work_sub")),
+            (project_id, github_repo),
+        );
     }
 
     /// Approve work and release escrow funds to freelancer
@@ -158,12 +173,18 @@ impl AgenticPayContract {
 
         // TODO: Transfer deposited funds to freelancer via Stellar token transfer
 
+        let amount_released = project.deposited;
         project.status = ProjectStatus::Completed;
         project.deposited = 0;
 
         env.storage()
             .persistent()
             .set(&DataKey::Project(project_id), &project);
+
+        env.events().publish(
+            (symbol_short!("project"), symbol_short!("payment")),
+            (project_id, amount_released),
+        );
     }
 
     /// Raise a dispute on a project
@@ -186,6 +207,11 @@ impl AgenticPayContract {
         env.storage()
             .persistent()
             .set(&DataKey::Project(project_id), &project);
+
+        env.events().publish(
+            (symbol_short!("project"), symbol_short!("disputed")),
+            (project_id, caller),
+        );
     }
 
     /// Admin resolves a dispute
@@ -250,7 +276,7 @@ mod test {
     #[test]
     fn test_project_creation() {
         let env = Env::default();
-        let admin = Address::generate(&env);
+        let _admin = Address::generate(&env);
         let client = Address::generate(&env);
         let freelancer = Address::generate(&env);
 
