@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import { verificationRouter } from './routes/verification.js';
 import { invoiceRouter } from './routes/invoice.js';
 import { stellarRouter } from './routes/stellar.js';
+import { catalogRouter } from './routes/catalog.js';
 
 dotenv.config();
 
@@ -22,6 +23,7 @@ app.get('/health', (_req, res) => {
 app.use('/api/v1/verification', verificationRouter);
 app.use('/api/v1/invoice', invoiceRouter);
 app.use('/api/v1/stellar', stellarRouter);
+app.use('/api/v1/catalog', catalogRouter);
 
 app.listen(PORT, () => {
   console.log(`AgenticPay backend running on port ${PORT}`);
