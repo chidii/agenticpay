@@ -6,6 +6,16 @@ export interface VerificationRequest {
     projectId: string;
 }
 
+export interface VerificationResponse {
+    id: string;
+    projectId: string;
+    status: 'passed' | 'failed' | 'pending';
+    score: number;
+    summary: string;
+    details: string[];
+    verifiedAt: string;
+}
+
 export interface InvoiceRequest {
     projectId: string;
     workDescription: string;
@@ -18,7 +28,7 @@ export const api = {
      * AI Work Verification
      */
     verifyWork: async (data: VerificationRequest) => {
-        return apiCall('/verification/verify', {
+        return apiCall<VerificationResponse>('/verification/verify', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

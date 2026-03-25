@@ -6,37 +6,46 @@ import {
   deleteVerification,
 } from '../services/verification.js';
 import { idempotency } from '../middleware/idempotency.js';
+import { validate } from '../middleware/validate.js';
+import { AppError, asyncHandler } from '../middleware/errorHandler.js';
+import {
+  verificationSchema,
+  bulkVerificationSchema,
+  bulkUpdateSchema,
+  bulkDeleteSchema,
+} from '../schemas/index.js';
 
 export const verificationRouter = Router();
 
 // AI-powered work verification
-verificationRouter.post('/verify', idempotency(), async (req, res) => {
-  try {
+verificationRouter.post(
+  '/verify',
+  idempotency(),
+  validate(verificationSchema),
+  asyncHandler(async (req, res) => {
     const { repositoryUrl, milestoneDescription, projectId } = req.body;
 
     if (!repositoryUrl || !milestoneDescription || !projectId) {
-      res.status(400).json({ message: 'Missing required fields' });
-      return;
+      throw new AppError(400, 'Missing required fields', 'VALIDATION_ERROR');
     }
 
     const result = await verifyWork({ repositoryUrl, milestoneDescription, projectId });
     res.json(result);
-  } catch (error) {
-    console.error('Verification error:', error);
-    res.status(500).json({ message: 'Verification failed' });
-  }
-});
+  })
+);
 
 // Bulk AI-powered work verification
-verificationRouter.post('/verify/batch', idempotency(), async (req, res) => {
-  try {
+verificationRouter.post(
+  '/verify/batch',
+  idempotency(),
+  validate(bulkVerificationSchema),
+  asyncHandler(async (req, res) => {
     const { items } = req.body as {
       items?: Array<{ repositoryUrl?: string; milestoneDescription?: string; projectId?: string }>;
     };
 
     if (!Array.isArray(items) || items.length === 0) {
-      res.status(400).json({ message: 'Missing items for bulk verification' });
-      return;
+      throw new AppError(400, 'Missing items for bulk verification', 'VALIDATION_ERROR');
     }
 
     const results = await Promise.all(
@@ -60,15 +69,14 @@ verificationRouter.post('/verify/batch', idempotency(), async (req, res) => {
     );
 
     res.json({ results });
-  } catch (error) {
-    console.error('Bulk verification error:', error);
-    res.status(500).json({ message: 'Bulk verification failed' });
-  }
-});
+  })
+);
 
 // Bulk update verification results
-verificationRouter.patch('/batch', (req, res) => {
-  try {
+verificationRouter.patch(
+  '/batch',
+  validate(bulkUpdateSchema),
+  asyncHandler(async (req, res) => {
     const { items } = req.body as {
       items?: Array<{
         id?: string;
@@ -80,8 +88,7 @@ verificationRouter.patch('/batch', (req, res) => {
     };
 
     if (!Array.isArray(items) || items.length === 0) {
-      res.status(400).json({ message: 'Missing items for bulk update' });
-      return;
+      throw new AppError(400, 'Missing items for bulk update', 'VALIDATION_ERROR');
     }
 
     const results = items.map((item, index) => {
@@ -116,20 +123,18 @@ verificationRouter.patch('/batch', (req, res) => {
 
     const updatedCount = results.filter((result) => result.status === 'success').length;
     res.json({ results, updatedCount });
-  } catch (error) {
-    console.error('Bulk update error:', error);
-    res.status(500).json({ message: 'Bulk update failed' });
-  }
-});
+  })
+);
 
 // Bulk delete verification results
-verificationRouter.delete('/batch', (req, res) => {
-  try {
+verificationRouter.delete(
+  '/batch',
+  validate(bulkDeleteSchema),
+  asyncHandler(async (req, res) => {
     const { ids } = req.body as { ids?: string[] };
 
     if (!Array.isArray(ids) || ids.length === 0) {
-      res.status(400).json({ message: 'Missing ids for bulk delete' });
-      return;
+      throw new AppError(400, 'Missing ids for bulk delete', 'VALIDATION_ERROR');
     }
 
     const results = ids.map((id) => {
@@ -138,30 +143,23 @@ verificationRouter.delete('/batch', (req, res) => {
       }
 
       const deleted = deleteVerification(id);
-      return deleted
-        ? { id, status: 'deleted' }
-        : { id, status: 'not_found' };
+      return deleted ? { id, status: 'deleted' } : { id, status: 'not_found' };
     });
 
     const deletedCount = results.filter((result) => result.status === 'deleted').length;
     res.json({ results, deletedCount });
-  } catch (error) {
-    console.error('Bulk delete error:', error);
-    res.status(500).json({ message: 'Bulk delete failed' });
-  }
-});
+  })
+);
 
 // Get verification result by ID
-verificationRouter.get('/:id', async (req, res) => {
-  try {
-    const result = await getVerification(req.params.id);
+verificationRouter.get(
+  '/:id',
+  asyncHandler(async (req, res) => {
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const result = await getVerification(id);
     if (!result) {
-      res.status(404).json({ message: 'Verification not found' });
-      return;
+      throw new AppError(404, 'Verification not found', 'NOT_FOUND');
     }
     res.json(result);
-  } catch (error) {
-    console.error('Get verification error:', error);
-    res.status(500).json({ message: 'Failed to fetch verification' });
-  }
-});
+  })
+);

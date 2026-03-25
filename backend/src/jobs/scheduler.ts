@@ -62,6 +62,23 @@ export class JobScheduler {
     return this.registry.listStatuses();
   }
 
+  stopAll(): void {
+    for (const job of this.tasks.values()) {
+      if (job.type === 'cron' && job.task) {
+        job.task.stop();
+      }
+      if (job.type === 'once' && job.timeout) {
+        clearTimeout(job.timeout);
+      }
+    }
+    
+    for (const jobId of this.tasks.keys()) {
+      this.registry.updateStatus(jobId, (status) => ({ ...status, status: 'paused' }));
+    }
+    
+    this.tasks.clear();
+  }
+
   private scheduleCronJob(definition: JobDefinition, resuming = false): void {
     const schedule = definition.schedule;
     if (schedule.type !== 'cron') {
