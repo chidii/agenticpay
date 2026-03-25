@@ -18,6 +18,13 @@ export class ValidationError extends Error {
   }
 }
 
+export class InvalidStellarInputError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'InvalidStellarInputError';
+  }
+}
+
 export function isValidStellarAddress(address: string) {
   if (!address?.trim()) {
     return false;
@@ -34,31 +41,21 @@ export function isValidTransactionHash(hash: string) {
   return /^[A-Fa-f0-9]{64}$/.test(hash);
 }
 
-export function validateStellarAddress(address: string): string {
-  if (!address?.trim()) {
-    throw new ValidationError('Stellar address must not be empty');
-  }
-
+function assertValidStellarAddress(address: string) {
   if (!isValidStellarAddress(address)) {
-    throw new ValidationError('Invalid Stellar address');
+    throw new InvalidStellarInputError('Invalid Stellar address');
   }
-
-  return address;
 }
 
-export function validateTransactionHash(hash: string): string {
-  if (!hash?.trim()) {
-    throw new ValidationError('Transaction hash must not be empty');
-  }
-
+function assertValidTransactionHash(hash: string) {
   if (!isValidTransactionHash(hash)) {
-    throw new ValidationError('Invalid transaction hash');
+    throw new InvalidStellarInputError('Invalid transaction hash');
   }
-
-  return hash;
 }
 
 export async function getAccountInfo(address: string) {
+  assertValidStellarAddress(address);
+
   const account = await server.loadAccount(address);
   return {
     address: account.accountId(),
@@ -71,6 +68,8 @@ export async function getAccountInfo(address: string) {
 }
 
 export async function getTransactionStatus(hash: string) {
+  assertValidTransactionHash(hash);
+
   const tx = await server.transactions().transaction(hash).call();
   return {
     hash: tx.hash,

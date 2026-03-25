@@ -1,8 +1,10 @@
 'use client';
 
+import { useState } from 'react';
 import { useDashboardData } from '@/lib/hooks/useDashboardData';
+import { useAuthStore } from '@/store/useAuthStore';
 import { Card, CardContent } from '@/components/ui/card';
-import { CheckCircle2, Clock, XCircle, ExternalLink, Wallet } from 'lucide-react';
+import { CheckCircle2, Clock, XCircle, ExternalLink, Wallet, QrCode, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { PaymentCardSkeleton } from '@/components/ui/loading-skeletons';
 import { EmptyState } from '@/components/empty/EmptyState';
@@ -29,9 +31,13 @@ export default function PaymentsPage() {
   if (loading) {
     return (
       <div className="space-y-6">
-        <div>
+<div>
           <h1 className="text-3xl font-bold text-gray-900">Payment History</h1>
           <p className="text-gray-600 mt-1">View all your payment transactions</p>
+          <div className="mt-2 inline-flex items-center gap-2 text-sm text-gray-500">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Loading payments...
+          </div>
         </div>
         <div className="space-y-4">
           {[1, 2, 3, 4].map((i) => (
@@ -44,11 +50,22 @@ export default function PaymentsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Payment History</h1>
-        <p className="text-gray-600 mt-1">View all your payment transactions</p>
+      {/* --- MODIFIED HEADER WITH QR BUTTON --- */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Payment History</h1>
+          <p className="text-gray-600 mt-1">View all your payment transactions</p>
+        </div>
+        
+        {address && (
+          <Button onClick={() => setIsQrModalOpen(true)} className="flex items-center gap-2">
+            <QrCode className="h-4 w-4" />
+            Receive Payment
+          </Button>
+        )}
       </div>
 
+      {/* --- PAYMENT LIST --- */}
       <div className="space-y-4">
         {payments.map((payment, index) => (
           <motion.div
@@ -113,7 +130,15 @@ export default function PaymentsPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* --- INJECTED QR MODAL --- */}
+      {address && (
+        <PaymentQRModal 
+          address={address} 
+          isOpen={isQrModalOpen} 
+          onClose={() => setIsQrModalOpen(false)} 
+        />
+      )}
     </div>
   );
 }
-
