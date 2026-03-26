@@ -5,10 +5,12 @@ import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { usePathname } from 'next/navigation';
 
 export function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -35,16 +37,18 @@ export function Navbar() {
           ? 'bg-white/80 backdrop-blur-md shadow-lg border-b border-gray-200/50'
           : 'bg-transparent'
       }`}
+      role="navigation"
+      aria-label="Main Navigation"
     >
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 lg:h-20">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 group">
+          <Link href="/" className="flex items-center gap-2 group" aria-label="Home">
             <motion.div
               whileHover={{ scale: 1.1, rotate: 5 }}
               className="w-10 h-10 lg:w-12 lg:h-12 rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center shadow-lg"
             >
-              <Wallet className="h-5 w-5 lg:h-6 lg:w-6 text-white" />
+              <Wallet className="h-5 w-5 lg:h-6 lg:w-6 text-white" aria-hidden="true" />
             </motion.div>
             <span className="text-xl lg:text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
               AgenticPay
@@ -57,7 +61,8 @@ export function Navbar() {
               <Link
                 key={link.name}
                 href={link.href}
-                className="text-sm font-medium text-gray-700 transition-colors hover:text-blue-600"
+                className="text-sm font-medium text-gray-700 transition-colors hover:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded"
+                aria-current={pathname === link.href ? 'page' : undefined}
               >
                 {link.name}
               </Link>
@@ -68,7 +73,8 @@ export function Navbar() {
           <div className="flex items-center gap-4">
             <Link href="/auth" className="hidden md:block">
               <Button
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all"
+                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                aria-label="Get Started"
               >
                 Get Started
               </Button>
@@ -77,8 +83,9 @@ export function Navbar() {
             {/* Mobile Menu Button */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
               aria-label="Toggle menu"
+              aria-expanded={isMobileMenuOpen}
             >
               {isMobileMenuOpen ? (
                 <X className="h-6 w-6 text-gray-700" />
@@ -111,7 +118,8 @@ export function Navbar() {
                   <Link
                     href={link.href}
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2 text-gray-700 font-medium hover:text-blue-600 transition-colors"
+                    className="block py-2 text-gray-700 font-medium hover:text-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded"
+                    aria-current={pathname === link.href ? 'page' : undefined}
                   >
                     {link.name}
                   </Link>
@@ -124,7 +132,10 @@ export function Navbar() {
                 className="pt-4"
               >
                 <Link href="/auth" onClick={() => setIsMobileMenuOpen(false)}>
-                  <Button className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white">
+                  <Button
+                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                    aria-label="Get Started"
+                  >
                     Get Started
                   </Button>
                 </Link>
@@ -136,4 +147,3 @@ export function Navbar() {
     </motion.nav>
   );
 }
-
