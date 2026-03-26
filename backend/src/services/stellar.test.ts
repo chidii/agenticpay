@@ -1,17 +1,19 @@
+import { Keypair } from '@stellar/stellar-sdk';
 import { describe, expect, it } from 'vitest';
 import {
+  getAccountInfo,
+  getTransactionStatus,
+  InvalidStellarInputError,
   isValidStellarAddress,
   isValidTransactionHash,
 } from './stellar.js';
 
+const validStellarAddress = Keypair.random().publicKey();
+
 describe('stellar validation', () => {
   describe('isValidStellarAddress', () => {
     it('accepts a valid Stellar public address', () => {
-      expect(
-        isValidStellarAddress(
-          'GDW3WVRSMOKORUSJE5FVATK4AGIMYONQJ2OQH4EARLBKZHWG4OYBI7M4'
-        )
-      ).toBe(true);
+      expect(isValidStellarAddress(validStellarAddress)).toBe(true);
     });
 
     it('rejects empty or whitespace values', () => {
@@ -57,6 +59,22 @@ describe('stellar validation', () => {
           'z3f9e2c1d4b6a8f0e1d3c5b7a9f2e4d6c8b0a1e3d5f7b9c1a2d4e6f8b0c2d4e6'
         )
       ).toBe(false);
+    });
+  });
+
+  describe('service-layer validation', () => {
+    it('rejects invalid Stellar addresses before loading an account', async () => {
+      await expect(getAccountInfo('G123')).rejects.toMatchObject({
+        name: 'InvalidStellarInputError',
+        message: 'Invalid Stellar address',
+      } satisfies Partial<InvalidStellarInputError>);
+    });
+
+    it('rejects invalid transaction hashes before fetching a transaction', async () => {
+      await expect(getTransactionStatus('not-a-hash')).rejects.toMatchObject({
+        name: 'InvalidStellarInputError',
+        message: 'Invalid transaction hash',
+      } satisfies Partial<InvalidStellarInputError>);
     });
   });
 });

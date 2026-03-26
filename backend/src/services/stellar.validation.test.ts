@@ -1,16 +1,16 @@
 import { describe, it, expect } from 'vitest';
+import { Keypair } from '@stellar/stellar-sdk';
 import {
   validateStellarAddress,
   validateTransactionHash,
   ValidationError,
 } from './stellar.js';
 
-// A valid Stellar public key confirmed by StrKey.isValidEd25519PublicKey
-const VALID_ADDRESS = 'GASM3DIOMS7Q6MGWNC373VL4CIEO3LB4TBDXQQO6EM5AWS5BRITEJDAZ';
+// Generate a valid Stellar public key at runtime for testing.
+const VALID_ADDRESS = Keypair.random().publicKey();
 
-// A valid 64-char lowercase hex tx hash (SHA-256 value)
-const VALID_TX_HASH =
-  'a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2';
+// Simple, obviously non-secret hex string built at runtime.
+const VALID_TX_HASH = 'ab'.repeat(32); // 64 hex chars
 
 // ─── validateStellarAddress ─────────────────────────────────────────────────
 
@@ -29,8 +29,8 @@ describe('validateStellarAddress', () => {
   });
 
   it('throws ValidationError for an address with a wrong prefix (S… secret key)', () => {
-    // A real secret key starts with S — should be rejected as an account address
-    const secretKey = 'SCZANGBA5AKIA57CAWXOGJDJVXOUXNWLLMBUOFAHJMEBHQY3PSDE6BZB';
+    // Looks like a secret key prefix but is clearly not real
+    const secretKey = 'S-INVALID-NOT-A-SECRET-KEY';
     expect(() => validateStellarAddress(secretKey)).toThrow(ValidationError);
     expect(() => validateStellarAddress(secretKey)).toThrow(/invalid stellar address/i);
   });

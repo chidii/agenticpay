@@ -1,16 +1,30 @@
 'use client';
 
+import { useState } from 'react';
 import { useDashboardData } from '@/lib/hooks/useDashboardData';
+import { useAuthStore } from '@/store/useAuthStore';
 import { Card, CardContent } from '@/components/ui/card';
-import { CheckCircle2, Clock, XCircle, ExternalLink, Wallet } from 'lucide-react';
+import {
+  CheckCircle2,
+  Clock,
+  XCircle,
+  ExternalLink,
+  Wallet,
+  QrCode,
+  Loader2,
+} from 'lucide-react';
 import { motion } from 'framer-motion';
 import { PaymentCardSkeleton } from '@/components/ui/loading-skeletons';
 import { EmptyState } from '@/components/empty/EmptyState';
 import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { PaymentQRModal } from '@/components/payment/QRCode';
 
 export default function PaymentsPage() {
   const router = useRouter();
   const { payments, loading } = useDashboardData();
+  const { address } = useAuthStore();
+  const [isQrModalOpen, setIsQrModalOpen] = useState(false);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -31,6 +45,10 @@ export default function PaymentsPage() {
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Payment History</h1>
           <p className="text-gray-600 mt-1">View all your payment transactions</p>
+          <div className="mt-2 inline-flex items-center gap-2 text-sm text-gray-500">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Loading payments...
+          </div>
         </div>
         <div className="space-y-4">
           {[1, 2, 3, 4].map((i) => (
@@ -43,9 +61,18 @@ export default function PaymentsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Payment History</h1>
-        <p className="text-gray-600 mt-1">View all your payment transactions</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Payment History</h1>
+          <p className="text-gray-600 mt-1">View all your payment transactions</p>
+        </div>
+
+        {address && (
+          <Button onClick={() => setIsQrModalOpen(true)} className="flex items-center gap-2">
+            <QrCode className="h-4 w-4" />
+            Receive Payment
+          </Button>
+        )}
       </div>
 
       {payments.length === 0 ? (
@@ -117,6 +144,14 @@ export default function PaymentsPage() {
             </motion.div>
           ))}
         </div>
+      )}
+
+      {address && (
+        <PaymentQRModal
+          address={address}
+          isOpen={isQrModalOpen}
+          onClose={() => setIsQrModalOpen(false)}
+        />
       )}
     </div>
   );
