@@ -11,7 +11,7 @@ import { catalogRouter } from './routes/catalog.js';
 import { jobsRouter } from './routes/jobs.js';
 import { healthRouter } from './routes/health.js';
 import { startJobs, getJobScheduler } from './jobs/index.js';
-import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
+import { errorHandler, notFoundHandler, AppError } from './middleware/errorHandler.js';
 
 dotenv.config();
 
@@ -91,18 +91,38 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 // Health & Readiness checks
 app.use(healthRouter);
 
+import { versionMiddleware } from './middleware/versioning.js';
+
 // Apply general limiter to all API routes
 app.use('/api/', generalLimiter);
 
-// Apply stricter limiter specifically to invoice routes
-app.use('/api/v1/invoice', invoiceLimiter);
+// Versioning middleware
+app.use('/api/', versionMiddleware);
 
-// API routes
-app.use('/api/v1/verification', verificationRouter);
-app.use('/api/v1/invoice', invoiceRouter);
-app.use('/api/v1/stellar', stellarRouter);
-app.use('/api/v1/catalog', catalogRouter);
-app.use('/api/v1/jobs', jobsRouter);
+// Define API v1 Router
+const apiV1Router = express.Router();
+apiV1Router.use('/verification', verificationRouter);
+apiV1Router.use('/invoice', invoiceLimiter, invoiceRouter);
+apiV1Router.use('/stellar', stellarRouter);
+apiV1Router.use('/catalog', catalogRouter);
+apiV1Router.use('/jobs', jobsRouter);
+
+// Explicit URL-based mounting
+app.use('/api/v1', apiV1Router);
+
+// Header-based or fallback mounting
+app.use('/api', (req: Request, res: Response, next: NextFunction) => {
+  if (req.path.startsWith('/v1/')) {
+    return next();
+  }
+
+  if (req.apiVersion === 'v1') {
+    return apiV1Router(req, res, next);
+  }
+  
+  next(new AppError(404, `API Version ${req.apiVersion} is not supported`, 'UNSUPPORTED_API_VERSION'));
+});
+
 app.use(notFoundHandler);
 app.use(errorHandler);
 
