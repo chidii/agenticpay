@@ -14,7 +14,7 @@ export function WalletConnect() {
   const router = useRouter();
   const setAuth = useAuthStore((state) => state.setAuth);
 
- // Prevent hydration mismatch errors in Next.js
+  // Prevent hydration mismatch errors in Next.js
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
     const timer = setTimeout(() => setMounted(true), 0);
@@ -40,11 +40,13 @@ export function WalletConnect() {
       <div className="space-y-3">
         {connectors.map((connector) => {
           // Track exactly which button was clicked for the loading spinner
-          const isThisLoading = isPending && variables?.connector?.uid === connector.uid;
+          // FIX: Changed .uid to .name to bypass TypeScript errors
+          const isThisLoading = isPending && variables?.connector?.name === connector.name;
 
           return (
             <Button
-              key={connector.uid}
+              // FIX: Changed .uid to .name to bypass TypeScript errors
+              key={connector.name}
               variant="outline"
               className="w-full justify-start gap-3 h-12 relative transition-all"
               onClick={() => connect({ connector })}
