@@ -7,9 +7,7 @@ import Link from "next/link"
 
 const breadcrumbVariants = cva("flex items-center gap-1.5")
 
-interface BreadcrumbProps
-  extends React.HTMLAttributes<HTMLDivElement>,
-    VariantProps<typeof breadcrumbVariants> {}
+type BreadcrumbProps = React.HTMLAttributes<HTMLDivElement> & VariantProps<typeof breadcrumbVariants>;
 
 const Breadcrumb = React.forwardRef<HTMLDivElement, BreadcrumbProps>(
   ({ className, ...props }, ref) => (
@@ -23,7 +21,7 @@ const Breadcrumb = React.forwardRef<HTMLDivElement, BreadcrumbProps>(
 )
 Breadcrumb.displayName = "Breadcrumb"
 
-interface BreadcrumbListProps extends React.HTMLAttributes<HTMLOListElement> {}
+type BreadcrumbListProps = React.HTMLAttributes<HTMLOListElement>;
 
 const BreadcrumbList = React.forwardRef<HTMLOListElement, BreadcrumbListProps>(
   ({ className, ...props }, ref) => (
@@ -36,7 +34,7 @@ const BreadcrumbList = React.forwardRef<HTMLOListElement, BreadcrumbListProps>(
 )
 BreadcrumbList.displayName = "BreadcrumbList"
 
-interface BreadcrumbItemProps extends React.HTMLAttributes<HTMLLIElement> {}
+type BreadcrumbItemProps = React.HTMLAttributes<HTMLLIElement>;
 
 const BreadcrumbItem = React.forwardRef<HTMLLIElement, BreadcrumbItemProps>(
   ({ className, ...props }, ref) => (
@@ -74,8 +72,7 @@ const BreadcrumbLink = React.forwardRef<HTMLAnchorElement, BreadcrumbLinkProps>(
 )
 BreadcrumbLink.displayName = "BreadcrumbLink"
 
-interface BreadcrumbPageProps
-  extends React.HTMLAttributes<HTMLSpanElement> {}
+type BreadcrumbPageProps = React.HTMLAttributes<HTMLSpanElement>;
 
 const BreadcrumbPage = React.forwardRef<HTMLSpanElement, BreadcrumbPageProps>(
   ({ className, ...props }, ref) => (

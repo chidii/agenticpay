@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Clock3, LocateFixed } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -33,7 +33,6 @@ function getSupportedTimeZones() {
   if (typeof Intl.supportedValuesOf !== 'function') {
     return [];
   }
-
   return Intl.supportedValuesOf('timeZone');
 }
 
@@ -41,13 +40,20 @@ export function TimezoneSettingsModal({ open, onClose }: TimezoneSettingsModalPr
   const storedTimeZone = useAuthStore((state) => state.timezone);
   const setTimezone = useAuthStore((state) => state.setTimezone);
   const browserTimeZone = getBrowserTimeZone();
-  const [localTimeZone, setLocalTimeZone] = useState<string>(resolveTimeZone(storedTimeZone));
 
-  useEffect(() => {
+  // Initialize state directly from the store. 
+  // We use a function initializer so it only runs on the first mount.
+  const [localTimeZone, setLocalTimeZone] = useState<string>(() => resolveTimeZone(storedTimeZone));
+
+  // LINT FIX: Instead of a useEffect that calls setState (which the linter hates),
+  // we sync the state during render ONLY when the modal transitions from closed to open.
+  const [lastOpen, setLastOpen] = useState(open);
+  if (open !== lastOpen) {
+    setLastOpen(open);
     if (open) {
       setLocalTimeZone(resolveTimeZone(storedTimeZone));
     }
-  }, [open, storedTimeZone]);
+  }
 
   const supportedTimeZones = useMemo(() => getSupportedTimeZones(), []);
   const previewTimeZone = resolveTimeZone(localTimeZone);
@@ -105,7 +111,7 @@ export function TimezoneSettingsModal({ open, onClose }: TimezoneSettingsModalPr
               ))}
             </datalist>
             <p className="text-xs text-muted-foreground">
-              Use a valid IANA timezone, like `Africa/Lagos` or `America/Los_Angeles`.
+              Use a valid IANA timezone, like Africa/Lagos or America/Los_Angeles.
             </p>
           </div>
 

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { CheckCircle2, Clock, AlertCircle, Filter, FileText, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation'; // Added this missing import
 import { InvoiceCardSkeleton } from '@/components/ui/loading-skeletons';
 import { EmptyState } from '@/components/empty/EmptyState';
 import { formatDateInTimeZone } from '@/lib/utils';
@@ -91,51 +92,9 @@ export default function InvoicesPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4">
-        {filteredInvoices.map((invoice, index) => (
-          <motion.div
-            key={invoice.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.05 }}
-          >
-            <Link href={`/dashboard/projects/${invoice.projectId}`}>
-              <Card className="hover:shadow-lg transition-all cursor-pointer">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4 flex-1">
-                      {getStatusIcon(invoice.status)}
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-gray-900">{invoice.projectTitle}</h3>
-                        <p className="text-sm text-gray-600">{invoice.milestoneTitle}</p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          Ref #{invoice.id} • {formatDateInTimeZone(invoice.generatedAt, timezone)}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-xl font-bold text-gray-900">
-                        {invoice.amount} {invoice.currency}
-                      </p>
-                      <span
-                        className={`inline-block px-3 py-1 rounded-full text-xs font-medium border mt-2 ${getStatusColor(
-                          invoice.status
-                        )}`}
-                      >
-                        {invoice.status}
-                      </span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          </motion.div>
-        ))}
-      </div>
-
-      {filteredInvoices.length === 0 && (
+      {filteredInvoices.length === 0 ? (
         <Card>
-          <CardContent>
+          <CardContent className="p-0">
             <EmptyState
               icon={FileText}
               title={filter === 'all' ? 'No invoices yet' : `No ${filter} invoices`}
@@ -166,7 +125,7 @@ export default function InvoicesPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05 }}
             >
-              <Link href={`/dashboard/projects/${invoice.projectId}`}>
+              <Link href={`/dashboard/invoices/${invoice.id}`}>
                 <Card className="hover:shadow-lg transition-all cursor-pointer">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
@@ -176,8 +135,7 @@ export default function InvoicesPage() {
                           <h3 className="font-semibold text-gray-900">{invoice.projectTitle}</h3>
                           <p className="text-sm text-gray-600">{invoice.milestoneTitle}</p>
                           <p className="text-xs text-gray-500 mt-1">
-                            Ref #{invoice.id} •{' '}
-                            {new Date(invoice.generatedAt).toLocaleDateString()}
+                            Ref #{invoice.id} • {formatDateInTimeZone(invoice.generatedAt, timezone)}
                           </p>
                         </div>
                       </div>
@@ -190,7 +148,7 @@ export default function InvoicesPage() {
                             invoice.status
                           )}`}
                         >
-                          {invoice.status}
+                          {invoice.status.toUpperCase()}
                         </span>
                       </div>
                     </div>
