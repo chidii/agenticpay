@@ -1,10 +1,8 @@
 'use client';
 
-import { useState } from 'react';
 import { useDashboardData } from '@/lib/hooks/useDashboardData';
 import { useAuthStore } from '@/store/useAuthStore';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import {
   CheckCircle2,
   Clock,
@@ -22,7 +20,8 @@ import { formatDateTimeInTimeZone } from '@/lib/utils';
 export default function PaymentsPage() {
   const router = useRouter();
   const { payments, loading } = useDashboardData();
-  const { timezone, address } = useAuthStore();
+  // FIXED: Removed 'address' from destructuring as it was unused
+  const { timezone } = useAuthStore();
 
   const getStatusIcon = (status: string) => {
     switch (status) {
