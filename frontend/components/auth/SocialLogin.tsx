@@ -24,7 +24,7 @@ export function SocialLogin() {
     try {
       setLoading(true);
 
-      await web3auth.initModal();
+      await (web3auth as any).initModal();
       const web3authProvider = await web3auth.connectTo(WALLET_ADAPTERS.AUTH, {
         loginProvider,
       });
