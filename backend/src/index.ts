@@ -2,8 +2,9 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 import { randomUUID } from 'node:crypto';
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import rateLimit from 'express-rate-limit';
+import compression from 'compression';
+import { config } from './config.js';
 import { verificationRouter } from './routes/verification.js';
 import { invoiceRouter } from './routes/invoice.js';
 import { stellarRouter } from './routes/stellar.js';
@@ -17,8 +18,7 @@ import { errorHandler, notFoundHandler, AppError } from './middleware/errorHandl
 import { messageQueue } from './services/queue.js';
 import { registerDefaultProcessors } from './services/queue-producers.js';
 import { slaTrackingMiddleware } from './middleware/slaTracking.js';
-
-dotenv.config();
+import { requestIdMiddleware, REQUEST_ID_HEADER } from './middleware/requestId.js';
 
 const traceStorage = new AsyncLocalStorage<string>();
 
@@ -47,11 +47,6 @@ console.warn = (...args) => originalConsole.warn(...formatMessage(args));
 console.error = (...args) => originalConsole.error(...formatMessage(args));
 
 const app = express();
-const PORT = process.env.PORT || 3001;
-
-const allowedOrigins = process.env.CORS_ALLOWED_ORIGINS
-  ? process.env.CORS_ALLOWED_ORIGINS.split(',').map((origin) => origin.trim())
-  : '*';
 
 type UserTier = 'free' | 'pro' | 'enterprise';
 
@@ -61,12 +56,12 @@ type TierRateState = {
 };
 
 const tierLimits: Record<UserTier, number> = {
-  free: Number(process.env.RATE_LIMIT_FREE ?? 100),
-  pro: Number(process.env.RATE_LIMIT_PRO ?? 300),
-  enterprise: Number(process.env.RATE_LIMIT_ENTERPRISE ?? 1000),
+  free: config.rateLimit.free,
+  pro: config.rateLimit.pro,
+  enterprise: config.rateLimit.enterprise,
 };
 
-const tierWindowMs = Number(process.env.RATE_LIMIT_WINDOW_MS ?? 15 * 60 * 1000);
+const tierWindowMs = config.rateLimit.windowMs;
 const tierRateStore = new Map<string, TierRateState>();
 
 function resolveUserTier(req: Request): UserTier {
@@ -141,57 +136,68 @@ const invoiceLimiter = rateLimit({
 
 app.use(
   cors({
-    origin: allowedOrigins,
+    origin: config.cors.allowedOrigins,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Trace-Id'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Trace-Id', REQUEST_ID_HEADER],
   })
 );
 app.use(express.json());
 
-// Trace ID middleware
+app.use(
+  compression({
+    threshold: config.compression.threshold,
+    filter: (req, res) => {
+      if (req.headers['x-no-compression']) {
+        return false;
+      }
+      const contentType = res.getHeader('Content-Type');
+      if (typeof contentType === 'string' && contentType.includes('application/json')) {
+        return true;
+      }
+      if (Array.isArray(contentType) && contentType.some((ct) => ct.includes('application/json'))) {
+        return true;
+      }
+      return compression.filter(req, res);
+    },
+  })
+);
+
+app.use(requestIdMiddleware);
+
 app.use((req: Request, res: Response, next: NextFunction) => {
   const traceId = (req.headers['x-trace-id'] as string) || randomUUID();
   res.setHeader('X-Trace-Id', traceId);
 
   traceStorage.run(traceId, () => {
-    console.log(`${req.method} ${req.url} - Started`);
+    console.log(`${req.method} ${req.url} [RequestID: ${req.requestId}] - Started`);
 
     res.on('finish', () => {
-      console.log(`${req.method} ${req.url} - Finished with status ${res.statusCode}`);
+      console.log(`${req.method} ${req.url} [RequestID: ${req.requestId}] - Finished with status ${res.statusCode}`);
     });
 
     next();
   });
 });
 
-// SLA Tracking middleware
 app.use(slaTrackingMiddleware);
 
-// Cache defaults:
-//   - GET/HEAD: individual routes apply cacheControl() with per-route TTLs.
-//   - All other methods: always no-store (mutations must never be cached).
 app.use((req: Request, res: Response, next: NextFunction) => {
   if (req.method !== 'GET' && req.method !== 'HEAD') {
     res.setHeader('Cache-Control', 'no-store');
   }
-  // Vary on Accept-Encoding so compressed/uncompressed responses are cached separately
   res.setHeader('Vary', 'Accept-Encoding');
   next();
 });
 
-// Health & Readiness checks
 app.use(healthRouter);
 
 import { versionMiddleware } from './middleware/versioning.js';
 
-// Apply tiered limiter to all API routes
 app.use('/api/', tieredRateLimit);
 
-// Versioning middleware
 app.use('/api/', versionMiddleware);
 
-// Define API v1 Router
 const apiV1Router = express.Router();
 apiV1Router.use('/verification', verificationRouter);
 apiV1Router.use('/invoice', invoiceLimiter, invoiceRouter);
@@ -201,10 +207,8 @@ apiV1Router.use('/jobs', jobsRouter);
 apiV1Router.use('/queue', queueRouter);
 apiV1Router.use('/sla', slaRouter);
 
-// Explicit URL-based mounting
 app.use('/api/v1', apiV1Router);
 
-// Header-based or fallback mounting
 app.use('/api', (req: Request, res: Response, next: NextFunction) => {
   if (req.path.startsWith('/v1/')) {
     return next();
@@ -220,23 +224,19 @@ app.use('/api', (req: Request, res: Response, next: NextFunction) => {
 app.use(notFoundHandler);
 app.use(errorHandler);
 
-const jobsEnabled = process.env.JOBS_ENABLED !== 'false';
-if (jobsEnabled) {
+if (config.jobs.enabled) {
   startJobs();
 }
 
-// Initialize message queue
 registerDefaultProcessors();
-const queueEnabled = process.env.QUEUE_ENABLED !== 'false';
-if (queueEnabled) {
+if (config.queue.enabled) {
   messageQueue.start();
 }
 
-const server = app.listen(PORT, () => {
-  console.log(`AgenticPay backend running on port ${PORT}`);
+const server = app.listen(config.server.port, () => {
+  console.log(`AgenticPay backend running on port ${config.server.port} [${config.env}]`);
 });
 
-// Graceful shutdown
 const shutdown = (signal: string) => {
   console.log(`${signal} received. Starting graceful shutdown...`);
 
