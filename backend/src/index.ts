@@ -13,17 +13,18 @@ import { jobsRouter } from './routes/jobs.js';
 import { healthRouter } from './routes/health.js';
 import { queueRouter } from './routes/queue.js';
 import { slaRouter } from './routes/sla.js';
+import { legacyRouter } from './routes/legacy.js';
 import { startJobs, getJobScheduler } from './jobs/index.js';
 import { errorHandler, notFoundHandler, AppError } from './middleware/errorHandler.js';
 import { messageQueue } from './services/queue.js';
 import { registerDefaultProcessors } from './services/queue-producers.js';
 import { slaTrackingMiddleware } from './middleware/slaTracking.js';
 import { requestIdMiddleware, REQUEST_ID_HEADER } from './middleware/requestId.js';
-import { validateEnv, config } from './config/env.js';
+import { validateEnv, config as getConfig } from './config/env.js';
 
 // Validate environment variables at startup
 validateEnv();
-const env = config();
+const env = getConfig();
 
 const traceStorage = new AsyncLocalStorage<string>();
 
@@ -211,6 +212,7 @@ apiV1Router.use('/catalog', catalogRouter);
 apiV1Router.use('/jobs', jobsRouter);
 apiV1Router.use('/queue', queueRouter);
 apiV1Router.use('/sla', slaRouter);
+apiV1Router.use('/legacy', legacyRouter);
 
 app.use('/api/v1', apiV1Router);
 
@@ -222,7 +224,7 @@ app.use('/api', (req: Request, res: Response, next: NextFunction) => {
   if (req.apiVersion === 'v1') {
     return apiV1Router(req, res, next);
   }
-  
+
   next(new AppError(404, `API Version ${req.apiVersion} is not supported`, 'UNSUPPORTED_API_VERSION'));
 });
 
