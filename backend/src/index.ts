@@ -21,6 +21,7 @@ import { registerDefaultProcessors } from './services/queue-producers.js';
 import { slaTrackingMiddleware } from './middleware/slaTracking.js';
 import { requestIdMiddleware, REQUEST_ID_HEADER } from './middleware/requestId.js';
 import { validateEnv, config as getConfig } from './config/env.js';
+import { flagsRouter } from './routes/flags.js';
 
 // Validate environment variables at startup
 validateEnv();
@@ -213,6 +214,8 @@ apiV1Router.use('/jobs', jobsRouter);
 apiV1Router.use('/queue', queueRouter);
 apiV1Router.use('/sla', slaRouter);
 apiV1Router.use('/legacy', legacyRouter);
+// Feature flag admin — inspect & override flags at runtime
+apiV1Router.use('/flags', flagsRouter);
 
 app.use('/api/v1', apiV1Router);
 
