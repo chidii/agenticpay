@@ -15,9 +15,9 @@ import { useAgenticPay } from '@/lib/hooks/useAgenticPay';
 import { useAccount } from 'wagmi';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
+import { OfflineActionQueuedError } from '@/lib/offline';
 import { formatDateInTimeZone } from '@/lib/utils';
 import { useAuthStore } from '@/store/useAuthStore';
-import { OfflineActionQueuedError } from '@/lib/offline';
 
 export default function ProjectDetailPage() {
   const params = useParams();
@@ -217,22 +217,20 @@ export default function ProjectDetailPage() {
                           toast.success("Invoice Generated");
                           refetch();
                         } catch (invError) {
-                          const err = invError as Error;
-                          if (err.name === 'OfflineActionQueuedError' || err.message.includes('queued')) {
-                            toast.info(err.message);
+                          if (invError instanceof OfflineActionQueuedError) {
+                            toast.info(invError.message);
                           } else {
-                            toast.error("Invoice error: " + err.message);
+                            toast.error("Invoice error: " + (invError as Error).message);
                           }
                         }
                       } else {
                         toast.error("Verification failed: " + verification.summary);
                       }
                     } catch (e) {
-                      const err = e as Error;
-                      if (err.name === 'OfflineActionQueuedError' || err.message.includes('queued')) {
-                        toast.info(err.message);
+                      if (e instanceof OfflineActionQueuedError) {
+                        toast.info(e.message);
                       } else {
-                        toast.error(err.message);
+                        toast.error((e as Error).message);
                       }
                     }
                   }}>
