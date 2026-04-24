@@ -16,6 +16,7 @@ import { slaRouter } from './routes/sla.js';
 import { legacyRouter } from './routes/legacy.js';
 import { splitsRouter } from './routes/splits.js';
 import { refundsRouter } from './routes/refunds.js';
+import { allowancesRouter } from './routes/allowances.js';
 import { startJobs, getJobScheduler } from './jobs/index.js';
 import { errorHandler, notFoundHandler, AppError } from './middleware/errorHandler.js';
 import { messageQueue } from './services/queue.js';
@@ -27,8 +28,11 @@ import { flagsRouter } from './routes/flags.js';
 import { emailRouter } from './routes/email.js';
 import { portfolioRouter } from './routes/portfolio.js';
 import { backupRouter } from './routes/backup.js';
+import { pushRouter } from './routes/push.js';
 import { ipAllowlistRouter } from './routes/ip-allowlist.js';
 import { ipAllowlistMiddleware, initIpAllowlist } from './middleware/ip-allowlist.js';
+import { SecurityMiddleware, SecurityMonitor } from './middleware/security.js';
+import { sanitizeInput, contentSecurityPolicy } from './middleware/sanitize.js';
 
 // Validate environment variables at startup
 validateEnv();
@@ -230,6 +234,7 @@ apiV1Router.use('/sla', slaRouter);
 apiV1Router.use('/legacy', legacyRouter);
 apiV1Router.use('/splits', splitsRouter);
 apiV1Router.use('/refunds', refundsRouter);
+apiV1Router.use('/allowances', allowancesRouter);
 // Email delivery system
 apiV1Router.use('/emails', emailRouter);
 // Portfolio/wallet aggregation
@@ -238,6 +243,8 @@ apiV1Router.use('/portfolio', portfolioRouter);
 apiV1Router.use('/backup', backupRouter);
 // IP allowlist management
 apiV1Router.use('/ip-allowlist', ipAllowlistRouter);
+// Push notifications
+apiV1Router.use('/push', pushRouter);
 
 app.use('/api/v1', ipAllowlistMiddleware(), apiV1Router);
 
